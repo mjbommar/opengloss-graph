@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+.venv/
+*.egg-info/
+dist/
+build/
+
+# Generated data files (distributed via GitHub Releases)
+*.ttl
+*.jsonld
+*.nt
+*.nq
+*.rdf
+*.gz
+*.zst
