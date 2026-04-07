@@ -10,11 +10,12 @@ The latest release is available as a compressed JSON-LD file from [GitHub Releas
 
 | File | Size | Description |
 |------|------|-------------|
-| `opengloss.jsonld.gz` | ~500 MB | Full graph (150,637 entries). Decompress with `gzip -d`. |
+| `opengloss.jsonld.gz` | ~500 MB | Full graph (150,637 entries, all 52 fields). Decompress with `gzip -d`. |
+| `opengloss-minimal.nt.gz` | ~97 MB | Word-to-word relations only (6.9M triples). N-Triples format. |
 | `opengloss-ontology.ttl` | ~8 KB | OWL ontology for custom `og:` properties |
-| `opengloss-context.jsonld` | ~3 KB | Standalone JSON-LD `@context` for reuse |
+| `opengloss-context.jsonld` | ~4 KB | Standalone JSON-LD `@context` for reuse |
 
-No special libraries required — the JSON-LD file is standard JSON that any language can parse.
+No special libraries required — JSON-LD is standard JSON; N-Triples is one triple per line.
 
 ## Background
 
@@ -184,6 +185,35 @@ uv run opengloss-graph triples --limit 1000 -o sample.ttl --ontology ontology.tt
 
 Note: the compact and triples paths use slightly different property names for edge fields (`og:sourceWord` vs `og:sourceEntry`). Both paths produce typed nodes for `og:LexicalRelation`, `og:EtymologyTrail`, and `og:EtymologySegment`.
 
+### Minimal Relations (word-to-word only)
+
+A lightweight graph with just direct word-to-word triples — no metadata, etymology, encyclopedia, or edge reification. 6.9M triples, ~97 MB gzipped.
+
+Includes: synonyms, antonyms, hypernyms, hyponyms, inflections (plural, tenses, comparative, superlative), derivations, collocations, POS, and labels.
+
+```bash
+# Download
+curl -L https://github.com/mjbommar/opengloss-graph/releases/download/v1.1.0/opengloss-minimal.nt.gz | gzip -d > opengloss-minimal.nt
+```
+
+Example entry (Turtle for readability):
+
+```turtle
+ogr:entry/complect a ontolex:LexicalEntry ;
+    rdfs:label "complect"@en ;
+    lexinfo:partOfSpeech lexinfo:verb ;
+    lexinfo:pastTense ogr:entry/complected ;
+    lexinfo:presentParticiple ogr:entry/complecting ;
+    lexinfo:thirdPersonSingular ogr:entry/complects ;
+    skos:broader ogr:entry/transitive_verb ;
+    skos:narrower ogr:entry/amalgamate, ogr:entry/conjoin, ogr:entry/intertwine ;
+    wn:synonym ogr:entry/combine, ogr:entry/integrate, ogr:entry/merge, ogr:entry/unite ;
+    wn:antonym ogr:entry/detach, ogr:entry/separate, ogr:entry/split ;
+    og:collocation ogr:entry/data, ogr:entry/variables ;
+    og:derivationNoun ogr:entry/complection ;
+    og:derivationAdjective ogr:entry/complective .
+```
+
 ## Building from Source
 
 Requires Python 3.13+ and [uv](https://docs.astral.sh/uv/). A HuggingFace token is needed to download the source dataset.
@@ -199,7 +229,10 @@ uv run opengloss-graph compact -o opengloss.jsonld
 # Test with a small subset
 uv run opengloss-graph compact -o test.jsonld --limit 100
 
-# Flat triples — N-Triples streams and can handle the full dataset
+# Minimal word-to-word relations only
+uv run opengloss-graph minimal -o opengloss-minimal.nt
+
+# Full flat triples — N-Triples streams and can handle the full dataset
 uv run opengloss-graph triples -o opengloss.nt
 
 # Turtle requires in-memory graph — use --limit

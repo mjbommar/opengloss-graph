@@ -82,6 +82,84 @@ def compact(
     typer.echo("Done.")
 
 
+# ── Minimal word-to-word relations ────────────────────────────────────
+
+@app.command()
+def minimal(
+    output: Path = typer.Option(
+        Path("opengloss-minimal.nt"),
+        "--output", "-o",
+        help="Output file. .nt streams in batches; .ttl builds in memory.",
+    ),
+    repo: str = typer.Option(
+        "mjbommar/opengloss-v1.1-dictionary",
+        "--repo", "-r",
+        help="HuggingFace dataset repo ID.",
+    ),
+    token_path: Path = typer.Option(
+        Path.home() / ".cache" / "huggingface" / "token",
+        "--token-path",
+        help="Path to HuggingFace token file.",
+    ),
+    limit: int | None = typer.Option(
+        None,
+        "--limit", "-n",
+        help="Only convert the first N records.",
+    ),
+    split: str = typer.Option(
+        "train",
+        "--split", "-s",
+        help="Dataset split to load.",
+    ),
+) -> None:
+    """Export only word-to-word relations (synonyms, antonyms, inflections, etc.).
+
+    No metadata, etymology, encyclopedia, or edge reification — just direct
+    triples between entry URIs. Much smaller than the full export.
+    """
+    from .minimal import convert_minimal, new_minimal_graph
+
+    token = _resolve_token(token_path)
+    ds = _load_dataset(repo, split, token, limit=limit)
+
+    total = len(ds)
+    fmt = _format_from_suffix(output.suffix)
+
+    if fmt == "nt":
+        typer.echo(f"Streaming {total:,} records to minimal N-Triples...")
+        triple_count = 0
+        with open(output, "wb") as f:
+            g = new_minimal_graph()
+            for i, record in enumerate(ds):
+                convert_minimal(g, record)
+                if (i + 1) % _NT_BATCH == 0 or (i + 1) == total:
+                    batch_data = g.serialize(format="nt")
+                    if isinstance(batch_data, str):
+                        batch_data = batch_data.encode("utf-8")
+                    f.write(batch_data)
+                    triple_count += len(g)
+                    g = new_minimal_graph()
+                    if (i + 1) % 10_000 == 0:
+                        typer.echo(f"  ... {i + 1:,} / {total:,} records ({triple_count:,} triples)")
+
+        size_mb = output.stat().st_size / (1024 * 1024)
+        typer.echo(f"Wrote {triple_count:,} triples ({size_mb:.1f} MB) to {output}")
+    else:
+        typer.echo(f"Converting {total:,} records to minimal triples ({fmt})...")
+        g = new_minimal_graph()
+        for i, record in enumerate(ds):
+            convert_minimal(g, record)
+            if (i + 1) % 10_000 == 0:
+                typer.echo(f"  ... {i + 1:,} / {total:,} records")
+
+        typer.echo(f"Graph has {len(g):,} triples.")
+        g.serialize(destination=str(output), format=fmt)
+        size_mb = output.stat().st_size / (1024 * 1024)
+        typer.echo(f"Wrote {size_mb:.1f} MB to {output}")
+
+    typer.echo("Done.")
+
+
 # ── Flat triples via rdflib (Turtle, N-Triples, RDF/XML) ──────────────
 
 @app.command()
