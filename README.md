@@ -155,7 +155,7 @@ The primary output preserves the original nested JSON structure with a `@context
 
 ```bash
 # Download and decompress
-curl -L https://github.com/mjbommar/opengloss-graph/releases/download/v1.0.0/opengloss.jsonld.gz | gzip -d > opengloss.jsonld
+curl -L https://github.com/mjbommar/opengloss-graph/releases/download/v1.1.0/opengloss.jsonld.gz | gzip -d > opengloss.jsonld
 
 # Load in Python (no special libraries needed)
 import json
